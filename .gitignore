@@ -8,7 +8,7 @@ conda-env/
 .conda/
 envs/
 
-
+/data
 
 .DS_Store
 Thumbs.db
