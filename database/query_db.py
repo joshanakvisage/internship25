@@ -6,18 +6,18 @@ def get_all_instances():
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT token, category FROM INSTANCE")
-    results = cursor.fetchall()
+    rows = cursor.fetchall()
     conn.close()
-    return results
+    return [dict(row) for row in rows]
 
 
 def get_scene_by_token(scene_token):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT token, name FROM SCENE WHERE token = ?", (str(scene_token),))
-    result = cursor.fetchone()
+    row = cursor.fetchone()
     conn.close()
-    return result
+    return dict(row) if row else None
 
 
 def get_instance_by_token(instance_token):
@@ -28,9 +28,9 @@ def get_instance_by_token(instance_token):
         FROM INSTANCE
         WHERE token = ?
     """, (instance_token,))
-    result = cursor.fetchone()
+    row = cursor.fetchone()
     conn.close()
-    return result
+    return dict(row) if row else None
 
 def get_movements_by_instance(instance_token):
     conn = get_connection()

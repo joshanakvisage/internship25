@@ -1,15 +1,9 @@
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from database.setup_db import create_tables
-from database.insert_db import insert_scene, insert_instance, insert_movements_from_instance
-from database.query_db import (
-    get_all_instances,
-    get_movements_by_instance,
-    get_instance_by_token, 
-    get_scene_by_token
-)
+from database.setup_db import *
+from database.insert_db import *
+from database.query_db import *
 
 from nuscenes.nuscenes import NuScenes
 
@@ -36,7 +30,7 @@ def main():
 
     
     print("All instances")
-    movement = get_movements_by_instance(instance["token"])[0]
+    movement = get_movements_by_instance(instance["token"])
     print(movement)
     #print("Movements of this instance:", get_movements_by_instance(instance["token"]))
  
