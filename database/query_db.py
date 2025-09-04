@@ -1,11 +1,20 @@
 import sqlite3
 from database.setup_db import get_connection
 
+def get_all_instances():
+    """Return all scenes in the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT token, category FROM INSTANCE")
+    results = cursor.fetchall()
+    conn.close()
+    return results
+
 
 def get_scene_by_token(scene_token):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT token, name FROM SCENE WHERE token = ?", (scene_token,))
+    cursor.execute("SELECT token, name FROM SCENE WHERE token = ?", (str(scene_token),))
     result = cursor.fetchone()
     conn.close()
     return result
@@ -32,8 +41,8 @@ def get_movements_by_instance(instance_token):
         WHERE instance_token = ?
         ORDER BY timestamp
     """, (instance_token,))
-    results = cursor.fetchall()
+    rows = cursor.fetchall()
     conn.close()
-    return results
+    return [dict(row) for row in rows]
 
 #TODO: TEST EVERYTHING

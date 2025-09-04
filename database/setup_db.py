@@ -1,11 +1,14 @@
 import sqlite3
+import os
 
-DB_PATH = "nuscenes_filtered.db"
+DB_PATH = os.path.join(os.path.dirname(__file__), "nuscenes_filtered.db")
+
 
 def get_connection():
     #Returns a SQLite connection with foreign keys enabled.
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.row_factory = sqlite3.Row   #TODO: CHECK IF THIS IS CORRECT
     return conn
 
 
@@ -16,7 +19,7 @@ def create_tables():
     # SCENE table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS SCENE (
-            token INTEGER PRIMARY KEY,
+            token TEXT PRIMARY KEY,
             name TEXT NOT NULL
         ) 
     """)
@@ -24,9 +27,9 @@ def create_tables():
     # INSTANCE table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS INSTANCE (
-            token INTEGER PRIMARY KEY,
+            token TEXT PRIMARY KEY,
             category TEXT NOT NULL,
-            scene_token INTEGER NOT NULL,
+            scene_token TEXT NOT NULL,
             FOREIGN KEY (scene_token) REFERENCES SCENE(token) ON DELETE CASCADE
         )
     """)
@@ -34,13 +37,13 @@ def create_tables():
     # MOVEMENT table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS MOVEMENT (
-            annotation_token INTEGER PRIMARY KEY,
+            annotation_token TEXT PRIMARY KEY,
             movement_type TEXT NOT NULL,
             translation TEXT NOT NULL,
             rotation TEXT NOT NULL,
             timestamp TEXT NOT NULL,
-            velocity REAL NOT NULL,
-            instance_token INTEGER NOT NULL,
+            velocity TEXT NOT NULL,
+            instance_token TEXT NOT NULL,
             FOREIGN KEY (instance_token) REFERENCES INSTANCE(token) ON DELETE CASCADE
         )
     """)
