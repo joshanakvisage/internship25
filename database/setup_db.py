@@ -5,10 +5,9 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "nuscenes_filtered.db")
 
 
 def get_connection():
-    #Returns a SQLite connection with foreign keys enabled.
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.row_factory = sqlite3.Row   #TODO: CHECK IF THIS IS CORRECT
+    conn = sqlite3.connect(DB_PATH) #connection to db
+    conn.execute("PRAGMA foreign_keys = ON") #important for enabling foreign keys
+    conn.row_factory = sqlite3.Row   #enables return as a dict
     return conn
 
 

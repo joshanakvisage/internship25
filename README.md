@@ -1,5 +1,6 @@
 # internship25
 
+### Project set up
 Git clone <br/>
 1.) Set up conda environment with python 3.10 <br/>
 2.) Install stone soup through terminal <br/>
@@ -19,3 +20,9 @@ cd data/
 !wget https://www.nuscenes.org/data/v1.0-mini.tgz <br/>  
 !tar -xf v1.0-mini.tgz -C   <br/>
 set up path to the data directory <br/>
+
+
+### Database set up and experiments 
+Position in internship directory <br/>
+1.) python database/setup_db.py <br/>
+2.) python experiments/sql_db_test.py <br/>

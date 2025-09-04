@@ -45,10 +45,10 @@ def insert_movements_from_instance(nusc, instance_token):
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             str(ann_object['token']),
-            str(nusc.get('attribute', ann_object['attribute_tokens'][0])['name']), #TODO:ATTRIBUTE OR SHOULD I CALCULATE IT  ->F 
-            str(ann_object['translation']),                  #TODO: CHECK STORE AS STRING OR?
+            str(nusc.get('attribute', ann_object['attribute_tokens'][0])['name']), #NOTE: attribute (standing,moving) not MODEL FOR NOW 
+            str(ann_object['translation']),                  
             str(ann_object['rotation']),
-            str(sample['timestamp']),                         #TODO: CHECK CONVERSION!
+            str(sample['timestamp']),                         
             velocity_str,
             ann_object['instance_token']   #NOTE: FOREIGN KEY FOR INSTANCE
         ))
