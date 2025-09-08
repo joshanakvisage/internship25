@@ -26,3 +26,5 @@ set up path to the data directory <br/>
 Position in internship directory <br/>
 1.) python database/setup_db.py <br/>
 2.) python experiments/sql_db_test.py <br/>
+Kalman experiment <br/>
+3.) python experiments/kalman.py

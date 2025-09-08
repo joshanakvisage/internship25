@@ -24,9 +24,19 @@ from stonesoup.plotter import AnimatedPlotterly
 start_time = datetime.now() 
 
 #Here the appropriate model will be selected
-#Returns a prior, translation model and measurement model
+#Returns a translation model, a prior (compatable to the t mod.) and measurement model (compatable to the prior)
 class Models(Enum):
-    Linear = 0
+    CONSTANT_VELOCITY = {
+        "trans_mod" : CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05 ),
+                                                          ConstantVelocity(0.05 )]),
+        "prior" : GaussianState([[0], [1], [0], [1]], np.diag([0.5, 0.5, 0.5, 0.5]), timestamp=start_time),
+        "meas_mod" : LinearGaussian(
+            ndim_state=4,  # Number of state fectors
+            mapping=(0, 2),  # mapping so the measurement index fits the predicted state vector H_x*x_k-1
+            noise_covar=np.array([[0.1, 0], # Covariance matrix for Gaussian PDF
+                                [0, 0.1]])
+            ) 
+    }
 
 # Convert dict to Detection for stonesoup
 def prepare_movements(movements, step=0.5):
@@ -45,29 +55,17 @@ def prepare_movements(movements, step=0.5):
 
 
 def kalman(measurements: list):
-    q_x = 0.05 #process noise? -> The target is assumed to move with (nearly) constant velocity, where target acceleration is modelled as white noise.
-    q_y = 0.05
-    transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(q_x),
-                                                          ConstantVelocity(q_y)])
-    
-    measurement_model = LinearGaussian(
-    ndim_state=4,  # Number of state fectors
-    mapping=(0, 2),  # mapping so the measurement index fits the predicted state vector H_x*x_k-1
-    noise_covar=np.array([[0.1, 0], # Covariance matrix for Gaussian PDF
-                          [0, 0.1]])
-    ) 
+    model_vars = Models.CONSTANT_VELOCITY.value
     
     # print("Transition model")
     # print(f"{transition_model.matrix(time_interval=timedelta(seconds=0.5))}")
     # print("Measurement model")
     # print(f"{measurement_model.matrix()}")
     
-    
-
-    predictor = KalmanPredictor(transition_model)
-    updater = KalmanUpdater(measurement_model)
+    predictor = KalmanPredictor(model_vars["trans_mod"])
+    updater = KalmanUpdater(model_vars["meas_mod"])
     #TODO: SET FIRST PRIOR THE SAME AS MEASUREMENT? OTHERWISE LARGE DISCREPENCY
-    prior = GaussianState([[0], [1], [0], [1]], np.diag([0.5, 0.5, 0.5, 0.5]), timestamp=start_time)
+    prior = model_vars["prior"]
 
 
     track = Track()       # filtered (posterior) track
@@ -81,9 +79,9 @@ def kalman(measurements: list):
         hypothesis = SingleHypothesis(prediction, measurement)
         post = updater.update(hypothesis)  # Update using measurement
         track.append(post)  
+        prior = post  # swap for next step
 
-
-    prior = post  # swap for next step
+        
     return pred_track, track
 
 
