@@ -1,9 +1,7 @@
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from database.setup_db import *
-from database.insert_db import *
-from database.query_db import *
+from database import *
 
 from nuscenes.nuscenes import NuScenes
 
@@ -11,7 +9,7 @@ def main():
     
     create_tables()
 
-    nusc = NuScenes(version="v1.0-mini", dataroot="data/nuscenes", verbose=True)
+    nusc = NuScenes(version="v1.0-mini", dataroot="data/nuscenes/v1.0-mini", verbose=True)
 
     # Pick a scene
     scene = nusc.scene[0]
