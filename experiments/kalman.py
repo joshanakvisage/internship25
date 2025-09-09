@@ -3,7 +3,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nuscenes.nuscenes import NuScenes
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
-                                               ConstantVelocity
+                                               ConstantVelocity, ConstantAcceleration
 from stonesoup.predictor.kalman import KalmanPredictor, UnscentedKalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater, UnscentedKalmanUpdater
 
@@ -30,7 +30,7 @@ class Models(Enum):
     CONSTANT_VELOCITY = { #x_{k+1} = x_k + v_x T -> pedestrians, slow objects
         "trans_mod" : CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05 ),
                                                           ConstantVelocity(0.05 )]),
-        "prior" : GaussianState([[0], [1], [0], [1]], np.diag([0.5, 0.5, 0.5, 0.5]), timestamp=start_time), #krivo init treba povećat
+        "prior" : GaussianState([[0], [0], [0], [0]], np.diag([0.5, 0.5, 0.5, 0.5]), timestamp=start_time), #krivo init treba povećat
         "meas_mod" : LinearGaussian(
             ndim_state=4,  # Number of state vectors
             mapping=(0, 2),  # mapping so the measurement index fits the predicted state vector H_x*x_k-1
@@ -38,6 +38,32 @@ class Models(Enum):
                                 [0, 0.1]]) #where R is your measurement noise covariance.
             ) 
     }
+    CONSTANT_ACCELERATION= {
+        "trans_mod": CombinedLinearGaussianTransitionModel([
+                                        ConstantAcceleration(0.05),  # Placeholder for acceleration model noise
+                                        ConstantAcceleration(0.05)]),   # Placeholder for acceleration model noise  
+                                        
+        "prior": GaussianState([0, 0, 0, 0, 0, 0], np.diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]), timestamp=start_time),
+        "meas_mod":meas_mod = LinearGaussian(
+                                        ndim_state=6,        
+                                        mapping=(0, 3),      # measure x (0) and y (3) -> should i measure also velocities from the sensor?
+                                        noise_covar=np.array([[0.1, 0], #change to 3x3 if i insert velocity
+                                                            [0, 0.1]])
+                                    )
+    }
+    #SINGER MODEL INSTED OF CONSTANT ACCELERATION?
+    COORDINATED_TURN = {
+        "trans_mod": 0,
+        "prior":0,
+        "meas_mod":0
+    }
+    #Reeds-Shepp Paths ? 
+    CONSTANT_TURN_ACCELERATION = {
+        "trans_mod": 0,
+        "prior":0,
+        "meas_mod":0
+    }
+
 
 
 
@@ -104,7 +130,6 @@ def kalman(measurements: list, model_variables, predictor, updater):
         track.append(post)  
         prior = post  # swap for next step
 
-
     return pred_track, track
 
 
@@ -114,10 +139,13 @@ if __name__== "__main__":
     instances = get_all_instances()  
     first_instance = instances[1]
     movements = get_movements_by_instance(first_instance["token"])
+    
+    #change according to tracked instance
     type = "CONSTANT_VELOCITY"
 
     if type == "CONSTANT_VELOCITY":
         model_data = Models.CONSTANT_VELOCITY
+        #linear kalman selected
         predictor = KalmanPredictor(model_data.value["trans_mod"])
         updater = KalmanUpdater(model_data.value["meas_mod"])
         gt_path, measurements = prepare_movements(movements, model_data)
@@ -125,7 +153,6 @@ if __name__== "__main__":
     pred_track, track = kalman(measurements, model_data, predictor, updater)
 
     timestamps = [detection.timestamp for detection in measurements]
-
     #compare ground truth velocity with predicted velocity
     plotter = AnimatedPlotterly(timestamps, tail_length=0.3)
     plotter.plot_tracks(pred_track, [0, 2], uncertainty=True, line=dict(color="orange"))
