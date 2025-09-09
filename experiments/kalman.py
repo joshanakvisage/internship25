@@ -182,6 +182,38 @@ if __name__== "__main__":
     plotter = AnimatedPlotterly(timestamps, tail_length=0.3)
     plotter.plot_tracks(pred_track, [0, 2], uncertainty=True, line=dict(color="orange"))
     plotter.plot_tracks(track, [0, 2], uncertainty=True)
-    plotter.fig.show()
-
+    #plotter.fig.show()
     
+    import matplotlib.pyplot as plt
+
+    # --- Extract GT and estimated states ---
+    gt_x = [state.state_vector[0, 0] for state in gt_path]   # true x
+    gt_y = [state.state_vector[1, 0] for state in gt_path]   # true y
+    est_x = [state.state_vector[0, 0] for state in track]    # posterior x
+    est_y = [state.state_vector[2, 0] for state in track]    # posterior y
+    times = [state.timestamp for state in gt_path]
+
+    # --- Plot X comparison ---
+    plt.figure(figsize=(10, 5))
+    plt.plot(times, gt_x, label="Ground Truth X", color="blue")
+    plt.plot(times, est_x, label="Posterior X", color="red", linestyle="--")
+    plt.xlabel("Time")
+    plt.ylabel("X position")
+    plt.title("Ground Truth vs Posterior X")
+    plt.legend()
+    plt.grid(True)
+
+    # --- Plot Y comparison ---
+    plt.figure(figsize=(10, 5))
+    plt.plot(times, gt_y, label="Ground Truth Y", color="blue")
+    plt.plot(times, est_y, label="Posterior Y", color="red", linestyle="--")
+    plt.xlabel("Time")
+    plt.ylabel("Y position")
+    plt.title("Ground Truth vs Posterior Y")
+    plt.legend()
+    plt.grid(True)
+
+    plt.show()  
+
+
+        
