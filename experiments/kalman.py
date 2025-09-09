@@ -4,6 +4,7 @@ from nuscenes.nuscenes import NuScenes
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                                ConstantVelocity, ConstantAcceleration
+from stonesoup.models.transition.nonlinear import ConstantTurn          
 from stonesoup.predictor.kalman import KalmanPredictor, UnscentedKalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater, UnscentedKalmanUpdater
 
@@ -20,6 +21,10 @@ pio.renderers.default = "browser"
 from enum import Enum
 
 from stonesoup.plotter import AnimatedPlotterly
+
+#ANALIZIRAO BIH KOORDINATNI TURN  CONST VEL SA KARTEZIJEVIM I POLARNIM SUSTAVIMA
+#ISTI MODEL S DRUGIM IZRAŽAVANJEM 
+
 
 
 start_time = datetime.now() 
@@ -44,26 +49,40 @@ class Models(Enum):
                                         ConstantAcceleration(0.05)]),   # Placeholder for acceleration model noise  
                                         
         "prior": GaussianState([0, 0, 0, 0, 0, 0], np.diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]), timestamp=start_time),
-        "meas_mod":meas_mod = LinearGaussian(
+        "meas_mod": LinearGaussian(
                                         ndim_state=6,        
-                                        mapping=(0, 3),      # measure x (0) and y (3) -> should i measure also velocities from the sensor?
+                                        mapping=(0, 3),      # measure x (0) and y (3) -> only position 
                                         noise_covar=np.array([[0.1, 0], #change to 3x3 if i insert velocity
                                                             [0, 0.1]])
-                                    )
+                                    ),
     }
     #SINGER MODEL INSTED OF CONSTANT ACCELERATION?
     COORDINATED_TURN = {
-        "trans_mod": 0,
-        "prior":0,
-        "meas_mod":0
-    }
-    #Reeds-Shepp Paths ? 
+        "trans_mod": ConstantTurn(
+            turn_noise_coeff=0.01,  # process noise for turn rate ω
+            linear_noise_coeffs=np.array([0.05, 0.05, 0.01, 0.01, 0.01])  
+            # noise for [x, y, v, heading, ω]
+        ),
+        "prior":GaussianState(
+                state_vector=np.array([[0],   # x position
+                                    [1],   # x velocity
+                                    [0],   # y position
+                                    [1],   # y velocity
+                                    [0]]), # turn rate ω
+                covar=np.diag([0.5, 0.5, 0.5, 0.5, 0.01]),  # Covariance for each state
+                timestamp=start_time),
+        "meas_mod": LinearGaussian(
+            ndim_state=5,             # number of states in ConstantTurn
+            mapping=(0, 2),           # we can measure x and y positions from sensors
+            noise_covar=np.array([[0.1, 0], 
+                                [0, 0.1]])  # measurement noise for x and y
+        )
+    },
     CONSTANT_TURN_ACCELERATION = {
         "trans_mod": 0,
         "prior":0,
         "meas_mod":0
     }
-
 
 
 
@@ -149,6 +168,12 @@ if __name__== "__main__":
         predictor = KalmanPredictor(model_data.value["trans_mod"])
         updater = KalmanUpdater(model_data.value["meas_mod"])
         gt_path, measurements = prepare_movements(movements, model_data)
+
+    if type == "COORDINATED_TURN":
+        model_data = Models.COORDINATED_TURN
+        predictor = UnscentedKalmanPredictor(model_data.value["trans_mod"])
+        updater = UnscentedKalmanPredictor(model_data.valu["meas_mod"])
+        gt_path, measurements = prepare_movements(movements, model_data) #for now the same
 
     pred_track, track = kalman(measurements, model_data, predictor, updater)
 
