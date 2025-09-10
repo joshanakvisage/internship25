@@ -19,9 +19,10 @@ from datetime import timedelta, datetime
 from stonesoup.types.track import Track
 pio.renderers.default = "browser"
 from enum import Enum
-
+import matplotlib.pyplot as plt
 from stonesoup.plotter import AnimatedPlotterly
-
+import utils
+print("Loaded utils from:", utils.__file__)
 #ANALIZIRAO BIH KOORDINATNI TURN  CONST VEL SA KARTEZIJEVIM I POLARNIM SUSTAVIMA
 #ISTI MODEL S DRUGIM IZRAŽAVANJEM 
 
@@ -60,7 +61,7 @@ class Models(Enum):
     COORDINATED_TURN = {
         "trans_mod": ConstantTurn(
             turn_noise_coeff=0.01,  # process noise for turn rate ω
-            linear_noise_coeffs=np.array([0.05, 0.05, 0.01, 0.01, 0.01])  
+            linear_noise_coeffs=np.array([0.05, 0.05])  
             # noise for [x, y, v, heading, ω]
         ),
         "prior":GaussianState(
@@ -77,7 +78,7 @@ class Models(Enum):
             noise_covar=np.array([[0.1, 0], 
                                 [0, 0.1]])  # measurement noise for x and y
         )
-    },
+    }
     CONSTANT_TURN_ACCELERATION = {
         "trans_mod": 0,
         "prior":0,
@@ -95,27 +96,24 @@ def prepare_movements(movements, model_data):
     R = model_data.value["meas_mod"].noise_covar 
 
     for i, mov in enumerate(movements):
-        position_3d = str_to_array(mov["translation"])
+         #if model_data == Models.CONSTANT_VELOCITY: -> maybe i will need rotation and velocity later
+        position_vector_2d = str_to_array(mov["translation"])[:2].reshape(-1, 1)
         
-        if model_data == Models.CONSTANT_VELOCITY:
-            position_vector = position_3d[:2].reshape(-1, 1) # Only x, y, discard z and any rotation/velocity
-        else:
-            print("Not set yet") # for other models, you might want x, y, z, rotation, etc. - add move["rotation"]
-        
+       
         gt_state = GroundTruthState( 
             state_vector=np.concatenate([
-                position_3d.reshape(-1, 1),
-                str_to_array(mov["rotation"]).reshape(-1, 1),
-                str_to_array(mov["velocity"]).reshape(-1, 1)
+                position_vector_2d,
+                np.array([[utils.quaternion_to_yaw(str_to_array(mov["rotation"]))]]),
+                str_to_array(mov["velocity"])[:2].reshape(-1, 1)
             ], axis=0),
             timestamp=start_time + timedelta(seconds=i * step)
         )
         gt_states.append(gt_state)
 
         if R is not None: # Noisy measurement
-            noisy_state = make_noisy(position_vector, R)
+            noisy_state = make_noisy(position_vector_2d, R)
         else:
-            noisy_state = position_vector
+            noisy_state = position_vector_2d
 
         detection = Detection(
             state_vector=noisy_state,
@@ -155,12 +153,12 @@ def kalman(measurements: list, model_variables, predictor, updater):
 
 
 if __name__== "__main__":
-    instances = get_all_instances()  
-    first_instance = instances[1]
-    movements = get_movements_by_instance(first_instance["token"])
-    
+    instances = get_all_instances()    
+    selected_instance = instances[2]
+    movements = get_movements_by_instance(selected_instance["token"])
+    print(movements[0])
     #change according to tracked instance
-    type = "CONSTANT_VELOCITY"
+    type = "COORDINATED_TURN"
 
     if type == "CONSTANT_VELOCITY":
         model_data = Models.CONSTANT_VELOCITY
@@ -172,7 +170,7 @@ if __name__== "__main__":
     if type == "COORDINATED_TURN":
         model_data = Models.COORDINATED_TURN
         predictor = UnscentedKalmanPredictor(model_data.value["trans_mod"])
-        updater = UnscentedKalmanPredictor(model_data.valu["meas_mod"])
+        updater = UnscentedKalmanUpdater(model_data.value["meas_mod"])
         gt_path, measurements = prepare_movements(movements, model_data) #for now the same
 
     pred_track, track = kalman(measurements, model_data, predictor, updater)
@@ -184,34 +182,61 @@ if __name__== "__main__":
     plotter.plot_tracks(track, [0, 2], uncertainty=True)
     #plotter.fig.show()
     
-    import matplotlib.pyplot as plt
-
-    # --- Extract GT and estimated states ---
+    
+   
     gt_x = [state.state_vector[0, 0] for state in gt_path]   # true x
     gt_y = [state.state_vector[1, 0] for state in gt_path]   # true y
     est_x = [state.state_vector[0, 0] for state in track]    # posterior x
     est_y = [state.state_vector[2, 0] for state in track]    # posterior y
     times = [state.timestamp for state in gt_path]
+    
+    #Ground truth velocities
+    gt_vx = [state.state_vector[1, 0] for state in gt_path]
+    gt_vy = [state.state_vector[3, 0] for state in gt_path]
 
-    # --- Plot X comparison ---
-    plt.figure(figsize=(10, 5))
-    plt.plot(times, gt_x, label="Ground Truth X", color="blue")
-    plt.plot(times, est_x, label="Posterior X", color="red", linestyle="--")
+    # Posterior (filtered) velocities
+    est_vx = [state.state_vector[1, 0] for state in track]
+    est_vy = [state.state_vector[3, 0] for state in track]
+
+    # Plot x velocity
+    plt.figure(figsize=(10,5))
+    plt.plot(times, gt_vx, label="Ground Truth Vx", color="blue")
+    plt.plot(times, est_vx, label="Posterior Vx", color="red", linestyle="--")
     plt.xlabel("Time")
-    plt.ylabel("X position")
-    plt.title("Ground Truth vs Posterior X")
+    plt.ylabel("Velocity X")
+    plt.title("Ground Truth vs Posterior X Velocity")
     plt.legend()
     plt.grid(True)
 
-    # --- Plot Y comparison ---
-    plt.figure(figsize=(10, 5))
-    plt.plot(times, gt_y, label="Ground Truth Y", color="blue")
-    plt.plot(times, est_y, label="Posterior Y", color="red", linestyle="--")
+    # Plot y velocity
+    plt.figure(figsize=(10,5))
+    plt.plot(times, gt_vy, label="Ground Truth Vy", color="blue")
+    plt.plot(times, est_vy, label="Posterior Vy", color="red", linestyle="--")
     plt.xlabel("Time")
-    plt.ylabel("Y position")
-    plt.title("Ground Truth vs Posterior Y")
+    plt.ylabel("Velocity Y")
+    plt.title("Ground Truth vs Posterior Y Velocity")
     plt.legend()
     plt.grid(True)
+    
+    # # x comparison
+    # plt.figure(figsize=(10, 5))
+    # plt.plot(times, gt_x, label="Ground Truth X", color="blue")
+    # plt.plot(times, est_x, label="Posterior X", color="red", linestyle="--")
+    # plt.xlabel("Time")
+    # plt.ylabel("X position")
+    # plt.title("Ground Truth vs Posterior X")
+    # plt.legend()
+    # plt.grid(True)
+
+    # # y comparison
+    # plt.figure(figsize=(10, 5))
+    # plt.plot(times, gt_y, label="Ground Truth Y", color="blue")
+    # plt.plot(times, est_y, label="Posterior Y", color="red", linestyle="--")
+    # plt.xlabel("Time")
+    # plt.ylabel("Y position")
+    # plt.title("Ground Truth vs Posterior Y")
+    # plt.legend()
+    # plt.grid(True)
 
     plt.show()  
 
