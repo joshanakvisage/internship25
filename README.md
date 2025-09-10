@@ -1,6 +1,6 @@
 # internship25
 
-### Project set up
+### PROJECT SET UP
 Git clone <br/>
 1.) Set up conda environment with python 3.10 <br/>
 2.) Install stone soup through terminal <br/>
@@ -21,10 +21,23 @@ cd data/
 !tar -xf v1.0-mini.tgz -C   <br/>
 set up path to the data directory <br/>
 
+### DATASET SET UP 
+1.)Create data/nuscenes folder
+2.)Go to nuscenes, sign/log in <br/>
+3.)Go to full data set <br/>
+4.)Download all metadata (US link) 0.43 GB (it will be saved as v1.0-trainval)<br/>
+5.)Download 1 file blob (whatever you want) <br/>
+6.)Create folder with the index x of the blob v1.train-x inside data/nuscenes <br/>
+7.)Export metadata (v1.0-trainval) and file blob into data/nuscenes/v1.train-x <br/
+8.)Set nuscenes path as:  <br/>
+nusc = NuScenes(version="v1.0-trainval", dataroot="data/nuscenes/v1.train-x",verbose=True)
+9.)First scene can be accessed by nusc.scene(a) where a=x*85
 
-### Database set up and experiments 
+
+### DATABASE AND EXPERIMENT SET UP
 Position in internship directory <br/>
 1.) python database/setup_db.py <br/>
 2.) python experiments/sql_db_test.py <br/>
-Kalman experiment <br/>
-3.) python experiments/kalman.py
+Change code to insert or delete instances from the dataset
+3.)Kalman experiment <br/>
+ python experiments/kalman.py
