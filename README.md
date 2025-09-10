@@ -15,11 +15,11 @@ sudo apt-get install libgtk2.0-dev <br/>
 pip uninstall opencv-python <br/>
 pip install opencv-python <br/> 
 Close and reopen terminal <br/> 
-6.) Install nuscenes mini dataset (So far) <br/>
+6.) Install nuscenes mini dataset (For first tests, later follow DATASET SET UP steps) <br/>
 cd data/
 !wget https://www.nuscenes.org/data/v1.0-mini.tgz <br/>  
-!tar -xf v1.0-mini.tgz -C   <br/>
-set up path to the data directory <br/>
+!tar -xf v1.0-mini.tgz    <br/>
+set up path to the data directory in nusc = NuScenes(version="v1-mini", dataroot="",verbose=True)  <br/>
 
 ### DATASET SET UP 
 1.)Create data/nuscenes folder
@@ -30,7 +30,7 @@ set up path to the data directory <br/>
 6.)Create folder with the index x of the blob v1.train-x inside data/nuscenes <br/>
 7.)Export metadata (v1.0-trainval) and file blob into data/nuscenes/v1.train-x <br/
 8.)Set nuscenes path as:  <br/>
-nusc = NuScenes(version="v1.0-trainval", dataroot="data/nuscenes/v1.train-x",verbose=True)
+nusc = NuScenes(version="v1.0-trainval", dataroot="data/nuscenes/v1.train-x",verbose=True) <br/>
 9.)First scene can be accessed by nusc.scene(a) where a=x*85
 
 
@@ -38,6 +38,6 @@ nusc = NuScenes(version="v1.0-trainval", dataroot="data/nuscenes/v1.train-x",ver
 Position in internship directory <br/>
 1.) python database/setup_db.py <br/>
 2.) python experiments/sql_db_test.py <br/>
-Change code to insert or delete instances from the dataset
+Change code to insert or delete instances from the dataset <br/>
 3.)Kalman experiment <br/>
  python experiments/kalman.py
