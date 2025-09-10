@@ -19,10 +19,10 @@ Close and reopen terminal <br/>
 cd data/
 !wget https://www.nuscenes.org/data/v1.0-mini.tgz <br/>  
 !tar -xf v1.0-mini.tgz    <br/>
-set up path to the data directory in nusc = NuScenes(version="v1-mini", dataroot="",verbose=True)  <br/>
+set up path to the data directory in nusc = NuScenes(version="v1-mini", dataroot="XXX",verbose=True)  <br/>
 
 ### DATASET SET UP 
-1.)Create data/nuscenes folder
+1.)Create data/nuscenes folder <br/>
 2.)Go to nuscenes, sign/log in <br/>
 3.)Go to full data set <br/>
 4.)Download all metadata (US link) 0.43 GB (it will be saved as v1.0-trainval)<br/>
