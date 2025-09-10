@@ -24,7 +24,7 @@ def insert_instance(nusc, instance_token):
     conn.commit()
     conn.close()
 
-def insert_movements_from_instance(nusc, instance_token):
+def insert_movements_from_instance(nusc, instance_token, attribute_override=None):
     instance = nusc.get('instance', instance_token)
     first_ann_token = instance['first_annotation_token']
     last_ann_token = instance['last_annotation_token']
@@ -38,14 +38,18 @@ def insert_movements_from_instance(nusc, instance_token):
         sample = nusc.get('sample', ann_object['sample_token'])
         velocity = nusc.box_velocity(ann_object['token'])
         velocity_str = str(velocity.tolist()) 
-         
+        if attribute_override is not None: #set attribute to CONSTANT_VELOCITY OR CONSTANT_TURN
+            movement_attr = attribute_override
+        else:
+            movement_attr = nusc.get('attribute', ann_object['attribute_tokens'][0])['name']
+            
         cursor.execute("""
             INSERT OR IGNORE INTO MOVEMENT
             (annotation_token, movement_type, translation, rotation, timestamp, velocity, instance_token)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             str(ann_object['token']),
-            str(nusc.get('attribute', ann_object['attribute_tokens'][0])['name']), #NOTE: attribute (standing,moving) not MODEL FOR NOW 
+            movement_attr, #NOTE: attribute (standing,moving) or MODEL FOR NOW  (set in arguments)
             str(ann_object['translation']),                  
             str(ann_object['rotation']),
             str(sample['timestamp']),                         
