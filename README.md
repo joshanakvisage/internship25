@@ -8,7 +8,7 @@ pip install stonesoup <br/>
 3.) Install nuscenes-devkit <br/>
 pip install nuscenes-devkit <br/>
 4.) Download ipykernel <br/>
-pip install ipykernel
+pip install ipykernel <br/>
 5.) Install libgtwk2.0-dev <br/>
 sudo apt-get update <br/> 
 sudo apt-get install libgtk2.0-dev <br/>
