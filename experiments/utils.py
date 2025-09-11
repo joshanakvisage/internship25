@@ -19,8 +19,8 @@ def extract_state_data(gt_path, track):
     # Ground truth
     gt_x = [state.state_vector[0, 0] for state in gt_path]
     gt_y = [state.state_vector[1, 0] for state in gt_path]
-    gt_vx = [state.state_vector[1, 0] for state in gt_path]
-    gt_vy = [state.state_vector[3, 0] for state in gt_path]
+    gt_vx = [state.state_vector[3, 0] for state in gt_path]
+    gt_vy = [state.state_vector[4, 0] for state in gt_path]
     times = [state.timestamp for state in gt_path]
 
     # Posterior estimates
