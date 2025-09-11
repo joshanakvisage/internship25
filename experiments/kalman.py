@@ -30,7 +30,7 @@ start_time = datetime.now()
 class Models(Enum):
     CONSTANT_VELOCITY = { #x_{k+1} = x_k + v_x T -> pedestrians, slow objects
         "trans_mod" : CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05 ),
-                                                          ConstantVelocity(0.05 )]),
+                                                          ConstantVelocity(0.05 )]), 
         "prior" : GaussianState([[0], [0], [0], [0]], np.diag([0.5, 0.5, 0.5, 0.5]), timestamp=start_time), #krivo init treba povećat
         "meas_mod" : LinearGaussian(
             ndim_state=4,  # Number of state vectors (x_pos, x_vel, y_pos,y_vel)
@@ -57,8 +57,8 @@ class Models(Enum):
     
     COORDINATED_TURN = { #FOR CARS IN ROTORS, CARS IN LONG TURNS ETC
         "trans_mod": ConstantTurn(
-            turn_noise_coeff=0.01,  # process noise for turn rate ω
-            linear_noise_coeffs=np.array([0.05, 0.05])  
+            turn_noise_coeff=0.01,  # determines uncertainty in nonlinear turn rate -> Q process noise for turn rate ω
+            linear_noise_coeffs=np.array([1, 1])   #determines uncertainty (process noise) in linear motion for velocity-> Q play with values
             # noise for [x, y, v, heading, ω]
         ),
         "prior":GaussianState(
@@ -67,13 +67,13 @@ class Models(Enum):
                                     [0],   # y position
                                     [1],   # y velocity
                                     [0]]), # turn rate ω
-                covar=np.diag([0.5, 0.5, 0.5, 0.5, 0.01]),  # Covariance for each state
+                covar=np.diag([0.5, 0.5, 0.5, 0.5, 0.01]),  # Confidence in initial guess
                 timestamp=start_time),
         "meas_mod": LinearGaussian(
             ndim_state=5,             # number of states in ConstantTurn
             mapping=(0, 2),           # we can measure x and y positions from sensors
             noise_covar=np.array([[0.1, 0], 
-                                [0, 0.1]])  # measurement noise for x and y
+                                [0, 0.1]])  # measurement noise for x and y -> R 
         )
     }
 
@@ -170,8 +170,8 @@ if __name__== "__main__":
 
     apriori_track, aposteriori_track = kalman(measurements, model_data, predictor, updater) #plots priori aposteriori and gt
     #TEST
-    #for track in aposteriori_track:
-    #    print(track.state_vector)
+    for track in aposteriori_track:
+        print(track.state_vector)
     
     data = utils.extract_state_data(gt_path, aposteriori_track) #extract data for plotting
 
