@@ -6,32 +6,19 @@ from database import *
 from nuscenes.nuscenes import NuScenes
 
 def main():
-    
-    create_tables()
+    return
+    #FLOW
+    #adjust folder
+    #nusc = NuScenes(version="v1.0-trainval", dataroot="data/nuscenes/v1.train-01", verbose=True)
+    #1.)INSERT SCENE x=index
+    #scene = nusc.scene[x]
+    #insert_scene(scene["token"], scene["name"])
+    #2.)INSERT INSTANCE y=token of instance
+    #insert_instance(nusc, instance["y"])
+    #3.)INSERT MOVEMENTS z=movement type ("CONSTANT_VELOCITY" OR "COORDINATED_TURN")
+    #insert_movements_from_instance(nusc, instance["token"], "z")
 
-    nusc = NuScenes(version="v1.0-mini", dataroot="data/nuscenes/v1.0-mini", verbose=True)
-
-    # Pick a scene
-    scene = nusc.scene[0]
-    scene_token = scene["token"]
-    print(type(scene_token))
-    print("type of scene_name")
-    print(type(scene["name"]))
-    insert_scene(scene_token, scene["name"])
-
-   
-    instance = nusc.instance[0]   # grab the first instance for now
-    insert_instance(nusc, instance["token"])
-
-    
-    insert_movements_from_instance(nusc, instance["token"])
-
-    
-    print("All instances")
-    movement = get_movements_by_instance(instance["token"])
-    print(movement)
-    #print("Movements of this instance:", get_movements_by_instance(instance["token"]))
- 
+  
 
 if __name__ == "__main__":
     main()

@@ -149,7 +149,7 @@ def kalman(measurements: list, model_variables, predictor, updater):
 
 if __name__== "__main__":
     instances = get_all_instances()    
-    selected_instance = instances[2]
+    selected_instance = instances[1]
     movements = get_movements_by_instance(selected_instance["token"])
     #change according to tracked instance
     type = "COORDINATED_TURN"

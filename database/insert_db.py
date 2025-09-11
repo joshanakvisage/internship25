@@ -8,6 +8,7 @@ def insert_scene(scene_token, name):
                    (str(scene_token), str(name)))
     conn.commit()
     conn.close()
+    print(f"Scene inserted {name}")
 
 def insert_instance(nusc, instance_token):
     conn = get_connection()
@@ -23,6 +24,7 @@ def insert_instance(nusc, instance_token):
                    (str(instance_token), category, str(scene_token)))
     conn.commit()
     conn.close()
+    print(f"Instance inserted {category}")
 
 def insert_movements_from_instance(nusc, instance_token, attribute_override=None):
     instance = nusc.get('instance', instance_token)
@@ -63,6 +65,7 @@ def insert_movements_from_instance(nusc, instance_token, attribute_override=None
 
     conn.commit()
     conn.close()
+    print(f"Movement inserted {attribute_override}")
 
 
 
