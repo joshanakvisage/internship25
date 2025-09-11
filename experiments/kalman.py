@@ -7,30 +7,25 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
 from stonesoup.models.transition.nonlinear import ConstantTurn          
 from stonesoup.predictor.kalman import KalmanPredictor, UnscentedKalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater, UnscentedKalmanUpdater
-
 from stonesoup.types.state import GaussianState
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.detection import Detection
 from stonesoup.models.measurement.linear import LinearGaussian
+from stonesoup.types.track import Track
+
 import numpy as np
 from database import *
 import plotly.io as pio
 from datetime import timedelta, datetime
-from stonesoup.types.track import Track
 pio.renderers.default = "browser"
 from enum import Enum
 import matplotlib.pyplot as plt
-from stonesoup.plotter import AnimatedPlotterly
 import utils
-print("Loaded utils from:", utils.__file__)
-#ANALIZIRAO BIH KOORDINATNI TURN  CONST VEL SA KARTEZIJEVIM I POLARNIM SUSTAVIMA
-#ISTI MODEL S DRUGIM IZRAŽAVANJEM 
 
 
 
 start_time = datetime.now() 
 
-#Here the appropriate model will be selected
 #Returns a translation model, a prior (compatable to the t mod.) and measurement model (compatable to the prior)
 class Models(Enum):
     CONSTANT_VELOCITY = { #x_{k+1} = x_k + v_x T -> pedestrians, slow objects
@@ -38,13 +33,13 @@ class Models(Enum):
                                                           ConstantVelocity(0.05 )]),
         "prior" : GaussianState([[0], [0], [0], [0]], np.diag([0.5, 0.5, 0.5, 0.5]), timestamp=start_time), #krivo init treba povećat
         "meas_mod" : LinearGaussian(
-            ndim_state=4,  # Number of state vectors
-            mapping=(0, 2),  # mapping so the measurement index fits the predicted state vector H_x*x_k-1
+            ndim_state=4,  # Number of state vectors (x_pos, x_vel, y_pos,y_vel)
+            mapping=(0, 2),  # mapping so the measurement index fits the predicted state vector H_x*x_k-1 to form the measurement data form
             noise_covar=np.array([[0.1, 0], 
                                 [0, 0.1]]) #where R is your measurement noise covariance.
             ) 
     }
-    CONSTANT_ACCELERATION= {
+    CONSTANT_ACCELERATION= { #PRIOR DEPENDS ON TRANSITION MODEL, MEASUREMENT MODEL DEPENDS ON PRIOR
         "trans_mod": CombinedLinearGaussianTransitionModel([
                                         ConstantAcceleration(0.05),  # Placeholder for acceleration model noise
                                         ConstantAcceleration(0.05)]),   # Placeholder for acceleration model noise  
@@ -52,13 +47,15 @@ class Models(Enum):
         "prior": GaussianState([0, 0, 0, 0, 0, 0], np.diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]), timestamp=start_time),
         "meas_mod": LinearGaussian(
                                         ndim_state=6,        
-                                        mapping=(0, 3),      # measure x (0) and y (3) -> only position 
+                                        mapping=(0, 3),      #TODO: CHECK IF POSITIONS ARE RIGHT measure x (0) and y (3) -> only position  
                                         noise_covar=np.array([[0.1, 0], #change to 3x3 if i insert velocity
                                                             [0, 0.1]])
                                     ),
     }
-    #SINGER MODEL INSTED OF CONSTANT ACCELERATION?
-    COORDINATED_TURN = {
+    
+    #SINGER MODEL INSTED OF CONSTANT ACCELERATION -> UNNESECCARY
+    
+    COORDINATED_TURN = { #FOR CARS IN ROTORS, CARS IN LONG TURNS ETC
         "trans_mod": ConstantTurn(
             turn_noise_coeff=0.01,  # process noise for turn rate ω
             linear_noise_coeffs=np.array([0.05, 0.05])  
@@ -79,13 +76,13 @@ class Models(Enum):
                                 [0, 0.1]])  # measurement noise for x and y
         )
     }
+
+    #NOT NEEDED FOR NOW
     CONSTANT_TURN_ACCELERATION = {
         "trans_mod": 0,
         "prior":0,
         "meas_mod":0
     }
-
-
 
 def prepare_movements(movements, model_data):
     step=0.5
@@ -131,12 +128,10 @@ def make_noisy(data, R):
 
 
 def kalman(measurements: list, model_variables, predictor, updater):
-    
+
     prior = model_variables.value["prior"]
-
-    track = Track()       # filtered (posterior) track
+    track = Track()       # filtered/updated (posterior) track
     pred_track = Track()  # predicted (prior) track
-
 
     for measurement in measurements:
         prediction = predictor.predict(prior, timestamp=measurement.timestamp)  # Predict
@@ -156,7 +151,6 @@ if __name__== "__main__":
     instances = get_all_instances()    
     selected_instance = instances[2]
     movements = get_movements_by_instance(selected_instance["token"])
-    print(movements[0])
     #change according to tracked instance
     type = "COORDINATED_TURN"
 
@@ -169,74 +163,22 @@ if __name__== "__main__":
 
     if type == "COORDINATED_TURN":
         model_data = Models.COORDINATED_TURN
+        #UKF
         predictor = UnscentedKalmanPredictor(model_data.value["trans_mod"])
         updater = UnscentedKalmanUpdater(model_data.value["meas_mod"])
         gt_path, measurements = prepare_movements(movements, model_data) #for now the same
 
-    pred_track, track = kalman(measurements, model_data, predictor, updater)
+    pred_track, track = kalman(measurements, model_data, predictor, updater) #plots priori aposteriori and gt
 
-    timestamps = [detection.timestamp for detection in measurements]
-    #compare ground truth velocity with predicted velocity
-    plotter = AnimatedPlotterly(timestamps, tail_length=0.3)
-    plotter.plot_tracks(pred_track, [0, 2], uncertainty=True, line=dict(color="orange"))
-    plotter.plot_tracks(track, [0, 2], uncertainty=True)
-    #plotter.fig.show()
-    
-    
    
-    gt_x = [state.state_vector[0, 0] for state in gt_path]   # true x
-    gt_y = [state.state_vector[1, 0] for state in gt_path]   # true y
-    est_x = [state.state_vector[0, 0] for state in track]    # posterior x
-    est_y = [state.state_vector[2, 0] for state in track]    # posterior y
-    times = [state.timestamp for state in gt_path]
-    
-    #Ground truth velocities
-    gt_vx = [state.state_vector[1, 0] for state in gt_path]
-    gt_vy = [state.state_vector[3, 0] for state in gt_path]
 
-    # Posterior (filtered) velocities
-    est_vx = [state.state_vector[1, 0] for state in track]
-    est_vy = [state.state_vector[3, 0] for state in track]
+    data = utils.extract_state_data(gt_path, track) #extract data for plotting
 
-    # Plot x velocity
-    plt.figure(figsize=(10,5))
-    plt.plot(times, gt_vx, label="Ground Truth Vx", color="blue")
-    plt.plot(times, est_vx, label="Posterior Vx", color="red", linestyle="--")
-    plt.xlabel("Time")
-    plt.ylabel("Velocity X")
-    plt.title("Ground Truth vs Posterior X Velocity")
-    plt.legend()
-    plt.grid(True)
+    #combined plots of all individual metrics -> individual plot for each metric can also be called
+    utils.plot_combined_tracks(data)
 
-    # Plot y velocity
-    plt.figure(figsize=(10,5))
-    plt.plot(times, gt_vy, label="Ground Truth Vy", color="blue")
-    plt.plot(times, est_vy, label="Posterior Vy", color="red", linestyle="--")
-    plt.xlabel("Time")
-    plt.ylabel("Velocity Y")
-    plt.title("Ground Truth vs Posterior Y Velocity")
-    plt.legend()
-    plt.grid(True)
-    
-    # # x comparison
-    # plt.figure(figsize=(10, 5))
-    # plt.plot(times, gt_x, label="Ground Truth X", color="blue")
-    # plt.plot(times, est_x, label="Posterior X", color="red", linestyle="--")
-    # plt.xlabel("Time")
-    # plt.ylabel("X position")
-    # plt.title("Ground Truth vs Posterior X")
-    # plt.legend()
-    # plt.grid(True)
-
-    # # y comparison
-    # plt.figure(figsize=(10, 5))
-    # plt.plot(times, gt_y, label="Ground Truth Y", color="blue")
-    # plt.plot(times, est_y, label="Posterior Y", color="red", linestyle="--")
-    # plt.xlabel("Time")
-    # plt.ylabel("Y position")
-    # plt.title("Ground Truth vs Posterior Y")
-    # plt.legend()
-    # plt.grid(True)
+    #x and y 2D plot
+    #utils.plot_tracks_with_groundtruth(measurements, gt_path, pred_track, track)
 
     plt.show()  
 
