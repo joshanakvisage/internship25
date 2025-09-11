@@ -130,19 +130,19 @@ def make_noisy(data, R):
 def kalman(measurements: list, model_variables, predictor, updater):
 
     prior = model_variables.value["prior"]
-    track = Track()       # filtered/updated (posterior) track
-    pred_track = Track()  # predicted (prior) track
+    aposteriori_track = Track()       # filtered/updated (posterior) track
+    apriori_track = Track()  # predicted (prior) track
 
     for measurement in measurements:
         prediction = predictor.predict(prior, timestamp=measurement.timestamp)  # Predict
-        pred_track.append(prediction)  
+        apriori_track.append(prediction)  
         
         hypothesis = SingleHypothesis(prediction, measurement) #measurement+noise
         post = updater.update(hypothesis)  # Update using measurement
-        track.append(post)  
+        aposteriori_track.append(post)  
         prior = post  # swap for next step
 
-    return pred_track, track
+    return apriori_track, aposteriori_track
 
 
 
@@ -168,11 +168,12 @@ if __name__== "__main__":
         updater = UnscentedKalmanUpdater(model_data.value["meas_mod"])
         gt_path, measurements = prepare_movements(movements, model_data) #for now the same
 
-    pred_track, track = kalman(measurements, model_data, predictor, updater) #plots priori aposteriori and gt
-
-   
-
-    data = utils.extract_state_data(gt_path, track) #extract data for plotting
+    apriori_track, aposteriori_track = kalman(measurements, model_data, predictor, updater) #plots priori aposteriori and gt
+    #TEST
+    #for track in aposteriori_track:
+    #    print(track.state_vector)
+    
+    data = utils.extract_state_data(gt_path, aposteriori_track) #extract data for plotting
 
     #combined plots of all individual metrics -> individual plot for each metric can also be called
     utils.plot_combined_tracks(data)
@@ -180,7 +181,7 @@ if __name__== "__main__":
     #x and y 2D plot
     #utils.plot_tracks_with_groundtruth(measurements, gt_path, pred_track, track)
 
-    plt.show()  
+    #plt.show()  
 
 
         
