@@ -2,26 +2,19 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nuscenes.nuscenes import NuScenes
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
-from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
-                                               ConstantVelocity, ConstantAcceleration
-from stonesoup.models.transition.nonlinear import ConstantTurn          
 from stonesoup.predictor.kalman import KalmanPredictor, UnscentedKalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater, UnscentedKalmanUpdater
-from stonesoup.types.state import GaussianState
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.detection import Detection
-from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.types.track import Track
-
 import numpy as np
 from database import *
-import plotly.io as pio
 from datetime import timedelta, datetime
+import plotly.io as pio
 pio.renderers.default = "browser"
-from enum import Enum
 import matplotlib.pyplot as plt
 import utils
-from models import cartesian_models
+from models.cartesian_models import Models as CartesianModels
 
 
 start_time = datetime(2025, 9, 12, 12, 0, 0)  #fixed value
@@ -35,7 +28,7 @@ def prepare_movements(movements, model_data):
     R = model_data.value["meas_mod"].noise_covar 
 
     for i, mov in enumerate(movements):
-         #if model_data == Models.CONSTANT_VELOCITY: -> maybe i will need rotation and velocity later
+         #if model_data == Models.CONSTANT_VELOCITY: -> maybe i will need rotation and velocity later and change the measurement data
         position_vector_2d = str_to_array(mov["translation"])[:2].reshape(-1, 1)
         
        
@@ -96,14 +89,14 @@ if __name__== "__main__":
     type = "COORDINATED_TURN"
 
     if type == "CONSTANT_VELOCITY":
-        model_data = cartesian_models.Models.CONSTANT_VELOCITY
+        model_data = CartesianModels.CONSTANT_VELOCITY
         #linear kalman selected
         predictor = KalmanPredictor(model_data.value["trans_mod"])
         updater = KalmanUpdater(model_data.value["meas_mod"])
         gt_path, measurements = prepare_movements(movements, model_data)
 
     if type == "COORDINATED_TURN":
-        model_data = cartesian_models.Models.COORDINATED_TURN
+        model_data = CartesianModels.COORDINATED_TURN
         #UKF
         predictor = UnscentedKalmanPredictor(model_data.value["trans_mod"])
         updater = UnscentedKalmanUpdater(model_data.value["meas_mod"])
