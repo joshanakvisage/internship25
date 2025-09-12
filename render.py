@@ -3,7 +3,8 @@ from nuscenes.nuscenes import NuScenes
 nusc = NuScenes(version="v1.0-trainval", dataroot="data/nuscenes/v1.train-01", verbose=True)
 
 #my_scene = nusc.get('scene', nusc.scene[85]['token'])
-my_scene = nusc.get('scene', nusc.scene[51]['token'])
+#my_scene = nusc.get('scene', nusc.scene[51]['token'])
+my_scene = nusc.get('scene', nusc.scene[36]['token'])
 
 nusc.render_scene_channel(my_scene['token'], 'CAM_FRONT', imsize=(800, 450))
 

@@ -23,8 +23,7 @@ import matplotlib.pyplot as plt
 import utils
 
 
-
-start_time = datetime.now() 
+start_time = datetime(2025, 9, 12, 12, 0, 0)  #fixed value
 
 #Returns a translation model, a prior (compatable to the t mod.) and measurement model (compatable to the prior)
 class Models(Enum):
@@ -149,7 +148,7 @@ def kalman(measurements: list, model_variables, predictor, updater):
 
 if __name__== "__main__":
     instances = get_all_instances()    
-    selected_instance = instances[1]
+    selected_instance = instances[0]
     movements = get_movements_by_instance(selected_instance["token"])
     #change according to tracked instance
     type = "COORDINATED_TURN"
