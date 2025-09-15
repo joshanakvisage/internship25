@@ -14,9 +14,10 @@ def quaternion_to_yaw(q):
 
 
 
-def extract_state_data(gt_path, track):
+def extract_state_data(gt_path, track, type):
     #Extract ground truth and aposteriori data to better format
-    # Ground truth
+    
+    # Ground truth which is pulled from the database (was inserted as x,y,yaw,vx,vz)
     gt_x = [state.state_vector[0, 0] for state in gt_path]
     gt_y = [state.state_vector[1, 0] for state in gt_path]
     gt_vx = [state.state_vector[3, 0] for state in gt_path]
@@ -24,10 +25,19 @@ def extract_state_data(gt_path, track):
     times = [state.timestamp for state in gt_path]
 
     # Posterior estimates
-    est_x = [state.state_vector[0, 0] for state in track]
-    est_y = [state.state_vector[2, 0] for state in track]
-    est_vx = [state.state_vector[1, 0] for state in track]
-    est_vy = [state.state_vector[3, 0] for state in track]
+    if type in ["CONSTANT_VELOCITY", "COORDINATED_TURN"]:
+        est_x = [state.state_vector[0, 0] for state in track]
+        est_y = [state.state_vector[2, 0] for state in track]
+        est_vx = [state.state_vector[1, 0] for state in track]
+        est_vy = [state.state_vector[3, 0] for state in track]
+
+    elif type == "POLAR_COORDINATED_TURN":
+        est_x = [state.state_vector[0, 0] for state in track]
+        est_y = [state.state_vector[1, 0] for state in track]
+        est_v = [state.state_vector[2, 0] for state in track]
+        est_h = [state.state_vector[3, 0] for state in track]
+        est_vx = est_v*np.cos(est_h)
+        est_vy = est_v*np.sin(est_h)
 
     return {
         "gt_x": gt_x,
@@ -146,7 +156,7 @@ def plot_tracks_with_groundtruth(measurements, groundtruth_path, pred_track, tra
     # Plot posterior (filtered) track
     plotter.plot_tracks(
         track,
-        mapping=[0, 2], # TODO: CHANGE ACCORDING TO PRIOR STRUCTURE
+        mapping=[0, 1], # TODO: CHANGE ACCORDING TO PRIOR STRUCTURE
         uncertainty=True
     )
 
