@@ -15,6 +15,10 @@ start_time = datetime(2025, 9, 12, 12, 0, 0)
 
 class PolarCoordinatedTurn(NonLinearTransitionModel):
     ndim_state = 5  # x, y, v, h, omega
+    def __init__(self, linear_noise=0.1, turn_noise=0.01): #set different noise 
+        super().__init__()
+        # process noise covariance: [x, y, v, h, omega]
+        self.noise_covar = np.diag([linear_noise, linear_noise, 0.01, 0.01, turn_noise])
 
 
     def function(self, state, noise=None, time_interval=None, **kwargs):
