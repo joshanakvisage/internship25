@@ -19,47 +19,6 @@ from models.polar_models import PolarModels
 
 start_time = datetime(2025, 9, 12, 12, 0, 0)  #fixed value
 
-def prepare_movements(movements, model_data):
-    step=0.5
-    #convert movement dictionaries into ground truths (real state) and detections/measurements
-    #measurement have added noise zk=Hkxk+vk
-    detections, gt_states = [],[]
-    
-    R = model_data.value["meas_mod"].noise_covar 
-
-    for i, mov in enumerate(movements):
-         #if model_data == Models.CONSTANT_VELOCITY: -> maybe i will need rotation and velocity later and change the measurement data
-        position_vector_2d = str_to_array(mov["translation"])[:2].reshape(-1, 1)
-        
-       
-        gt_state = GroundTruthState( 
-            state_vector=np.concatenate([
-                position_vector_2d,
-                np.array([[utils.quaternion_to_yaw(str_to_array(mov["rotation"]))]]),
-                str_to_array(mov["velocity"])[:2].reshape(-1, 1)
-            ], axis=0),
-            timestamp=start_time + timedelta(seconds=i * step)
-        )
-        gt_states.append(gt_state)
-
-        if R is not None: # Noisy measurement
-            noisy_state = make_noisy(position_vector_2d, R)
-        else:
-            noisy_state = position_vector_2d
-
-        detection = Detection(
-            state_vector=noisy_state,
-            timestamp=start_time + timedelta(seconds=i * step)
-        )
-        detections.append(detection)
-
-    gt_path = GroundTruthPath(gt_states)
-    return gt_path, detections
-    
-def make_noisy(data, R):
-    mean = np.zeros(R.shape[0])
-    noise = np.random.multivariate_normal(mean, R).reshape(-1, 1)
-    return data+noise
 
 def kalman(measurements: list, model_variables, predictor, updater):
 
@@ -80,40 +39,43 @@ def kalman(measurements: list, model_variables, predictor, updater):
 
 
 
-
+#14 je ODLICAN ZA SADA
 if __name__== "__main__":
     instances = get_all_instances()    
-    selected_instance = instances[1]
+    selected_instance = instances[4]
+    print(selected_instance["token"])
     movements = get_movements_by_instance(selected_instance["token"])
     #change according to tracked instance
-    #type = "COORDINATED_TURN"
-    type = "POLAR_COORDINATED_TURN"
+    type = "COORDINATED_TURN"
+    #type = "POLAR_COORDINATED_TURN"
     if type == "CONSTANT_VELOCITY":
         model_data = CartesianModels.CONSTANT_VELOCITY
         #linear kalman selected
         predictor = KalmanPredictor(model_data.value["trans_mod"])
         updater = KalmanUpdater(model_data.value["meas_mod"])
-        gt_path, measurements = prepare_movements(movements, model_data) 
+        gt_path, measurements = utils.prepare_movements(movements, model_data) 
 
     if type == "COORDINATED_TURN":
         model_data = CartesianModels.COORDINATED_TURN
         #UKF
         predictor = UnscentedKalmanPredictor(model_data.value["trans_mod"])
         updater = UnscentedKalmanUpdater(model_data.value["meas_mod"])
-        gt_path, measurements = prepare_movements(movements, model_data)
+        #gt_path, measurements = prepare_movements(movements, model_data)
+        gt_path, measurements = utils.prepare_movements(movements, model_data, start_time, step=0.5, interpolate_points=True)
 
     if type == "POLAR_COORDINATED_TURN":
         model_data = PolarModels.POLAR_COORDINATED_TURN
         #UKF
         predictor = UnscentedKalmanPredictor(model_data.value["trans_mod"])
         updater = UnscentedKalmanUpdater(model_data.value["meas_mod"])
-        gt_path, measurements = prepare_movements(movements, model_data) #for now the same, can change it if i want to add v1 or v2
+        gt_path, measurements = utils.prepare_movements(movements, model_data) #for now the same, can change it if i want to add v1 or v2
 
 
     apriori_track, aposteriori_track = kalman(measurements, model_data, predictor, updater) #plots priori aposteriori and gt
     #TEST
     i=0
-    for track in aposteriori_track:
+    print(len(aposteriori_track))
+    for track in gt_path:
          print(i)
          print(track.state_vector)
          i=i+1
