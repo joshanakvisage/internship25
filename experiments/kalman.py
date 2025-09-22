@@ -16,13 +16,33 @@ import matplotlib.pyplot as plt
 import utils
 from models.cartesian_models import Models as CartesianModels
 from models.polar_models import PolarModels 
+from stonesoup.types.state import GaussianState
 
 start_time = datetime(2025, 9, 12, 12, 0, 0)  #fixed value
 
+def generate_prior_from_mes(measurements: list, model_variables):
+    first_meas = measurements[0]
+    z0 = first_meas.state_vector  # shape (2,1): [x, y]
+    x0 = z0[0,0] # i dont know why the measurements are a 2d array for 2 values -> it has to do with the stone soup implementation
+    y0 = z0[1,0]
+    # guess zero velocity and zero turn rate
+    vx0, vy0, w0 = 0., 0., 0.
+    #change this depending on the transition model (look up from models)
+    state_vec = np.array([[x0],
+                        [vx0],
+                        [y0],
+                        [vy0],
+                        [w0]])
+    # large uncertainty on velocities and turn rate
+    covar = np.diag([1.0, 100.0, 1.0, 100.0, 10.0])
+    prior = GaussianState(state_vec, covar, timestamp=first_meas.timestamp)
+    return prior
+
 
 def kalman(measurements: list, model_variables, predictor, updater):
-
-    prior = model_variables.value["prior"]
+    #chose if first prior is from first measurement data or if prior is hardcoded as 0,0
+    prior = generate_prior_from_mes(measurements, model_variables) #decrease transition noise and increase measurement noise
+    #prior = model_variables.value["prior"] #NOTE: if prior is hardcoded from model class decrease measurement noise and increase transition noise
     aposteriori_track = Track()       # filtered/updated (posterior) track
     apriori_track = Track()  # predicted (prior) track
 
@@ -74,11 +94,11 @@ if __name__== "__main__":
     apriori_track, aposteriori_track = kalman(measurements, model_data, predictor, updater) #plots priori aposteriori and gt
     #TEST
     i=0
-    print(len(aposteriori_track))
-    for track in gt_path:
-         print(i)
-         print(track.state_vector)
-         i=i+1
+    # print(len(aposteriori_track))
+    # for track in gt_path:
+    #      print(i)
+    #      print(track.state_vector)
+    #      i=i+1
     
 
     data = utils.extract_state_data(gt_path, aposteriori_track, type) #extract data for plotting

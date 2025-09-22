@@ -154,12 +154,12 @@ def plot_tracks_with_groundtruth(measurements, groundtruth_path, pred_track, tra
         line=dict(color="red")
     )
 
-    # # Plot posterior (filtered) track
-    # plotter.plot_tracks(
-    #     track,
-    #     mapping=[0, 2], # NOTE: CHANGE ACCORDING TO STATE VECTOR STRUCTURE -> VISIBLE IN MODELS
-    #     uncertainty=True
-    # )
+    # Plot posterior (filtered) track
+    plotter.plot_tracks(
+        track,
+        mapping=[0, 2], # NOTE: CHANGE ACCORDING TO STATE VECTOR STRUCTURE -> VISIBLE IN MODELS
+        uncertainty=True
+    )
 
     # Show interactive figure
     plotter.fig.show()
