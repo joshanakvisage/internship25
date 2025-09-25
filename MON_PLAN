@@ -1,0 +1,39 @@
+MON for estimation PLAN
+
+a.) DATA STRUCTURE
+DATA_STRUCTURE = [x_1, x_2, x_3 ... x_n] #n is number of CT paths in dataset 
+
+x = dictionary representing one CT path and helper data
+
+x = {
+	"GT_PATH": [g1, g2, g3, ... g40] #ground truth states from our path
+	"MEAS": [a1, a2, a3, ... a40] #sensor measurements from our path (calculated by adding noise to GT)
+	"MON": [b1, b2, b3, ... b40] #calculated MON matching each ground truth from path
+	"EST": [c1, c2, c3, ... c40] #ESTIMATED positions from our kalman filter tracker (c2 is calculated from a2, and c_1)
+	"MSE": [d1, d2, d3, ... d40] #calculated MSE between Ground truth gi and EST ci
+	"MET": [m1, m2, m3, ... m40] #OPTIONAL: comparison between MON and MSE according to some METRIC
+	}
+	
+	
+b.) ALGORITHM:
+
+#initializing our data structure according to data set
+1.) produce DATA_STRUCTURE according to a.)
+FOR path in dataset:
+	2.) init dictionary x with GT_PATH, MEAS, MON, EST, MSE and MET keys with arrays as variables
+	3.) SET "GT_PATH" as points from path, calculate "MEAS" from ground_truth path by adding noise, set c1 as a1 (first estimated pos is mes)
+				leave b1 and d1 as None (do not calculate MON and MSE for start of path) 
+	4.) insert x into array DATA_STRUCTURE
+	
+#filling the data structure
+FOR LOOP (j=2; j<40; j++) 	#Our path has 40 meaasurements (or have an artificial dataset with paths of 40 measurements)
+	FOR x in DATA_STRUCTURE: #x_i dictionary representing CT_path data point
+	5.) from x dictionary grab a_j from MEAS
+	6.) Estimate next position (c_j) from (c_j-1) and a_j and append into EST array
+	7.) Calculate error between c_j and g_j and append as d_j into MSE array
+	8.) Calculate MON for g_j and append as b_j into MON array
+	IF (COMPARISON BETWEEN MON AND MSE):
+	     9.) calculate comparison between MON and MSE and append as m_j into MET array
+	10.) set into x new MON, EST, MSE and MET
+	
+	
