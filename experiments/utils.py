@@ -5,7 +5,6 @@ from datetime import timedelta, datetime
 import numpy as np
 from stonesoup.types.detection import Detection
 from stonesoup.types.groundtruth import GroundTruthState, GroundTruthPath
-import utils
 from database import *
 
 #Yaw only important for vehicles in 2d (rotation around the vertical axis)
@@ -29,6 +28,7 @@ def extract_state_data(gt_path, track, type):
 
     # Posterior estimates
     if type in ["CONSTANT_VELOCITY", "COORDINATED_TURN"]:
+        print("HELLO")
         est_x = [state.state_vector[0, 0] for state in track]
         est_y = [state.state_vector[2, 0] for state in track]
         est_vx = [state.state_vector[1, 0] for state in track]
