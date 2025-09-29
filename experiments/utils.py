@@ -209,7 +209,7 @@ def make_gt_and_det(mov, timestamp, R):
     """mov is expected to already contain numpy arrays (not strings)."""
     pos_2d = mov["translation"][:2].reshape(-1, 1)
     vel_2d = mov["velocity"][:2].reshape(-1, 1)
-    yaw = utils.quaternion_to_yaw(mov["rotation"])  # mov["rotation"] already np.array
+    yaw = quaternion_to_yaw(mov["rotation"])  # mov["rotation"] already np.array
 
     gt_state = GroundTruthState(
         state_vector=np.concatenate([pos_2d, np.array([[yaw]]), vel_2d], axis=0),
