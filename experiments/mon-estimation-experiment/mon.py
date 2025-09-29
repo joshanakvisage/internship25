@@ -3,7 +3,7 @@ from experiments.models.cartesian_models import Models as CartesianModels
 from experiments.models.cartesian_models import generate_cartesian_prior_from_mes
 from experiments.models.polar_models import PolarModels 
 from experiments import utils #top level experiments utils
-from .utils import generate_perfect_trajectory_positions #mon-estimation-experiment utils
+from .utils import generate_perfect_trajectory_positions, generate_perfect_trajectory_np, plot_states_xy #mon-estimation-experiment utils
 from stonesoup.types.state import GaussianState
 from stonesoup.types.detection import Detection
 from stonesoup.types.groundtruth import GroundTruthState, GroundTruthPath
@@ -86,9 +86,11 @@ def measure_of_nonlinearity(states, transition_model, dt):
 if __name__=="__main__":
     z0 = np.array([[0.0],   # x0 is row 0 
                [0.0]]) # y0 is row 1
-    gt_path, detections, positions = generate_perfect_trajectory_positions(CartesianModels.COORDINATED_TURN, z0, 50)
-    plot_positions_numpy(positions)
-    print(detections)
+    # gt_path, detections, positions = generate_perfect_trajectory_positions(CartesianModels.COORDINATED_TURN, z0, 50)
+    # plot_positions_numpy(positions)
+    gt_states, detections = generate_perfect_trajectory_np(CartesianModels.COORDINATED_TURN, z0, 50)
+    plot_states_xy(gt_states)
+    print(gt_states[:20])
     #M= measure_of_nonlinearity(states, CartesianModels.COORDINATED_TURN.value["trans_mod"], 0.5)
     #print(M)
 
