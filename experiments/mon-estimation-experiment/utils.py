@@ -28,7 +28,7 @@ def generate_perfect_trajectory_positions(model_entry, first_point: np.ndarray ,
                                 timestamp=current_state.timestamp)]
     
    
-    #TODO: take this and set it up for self.gt_path and self.mes inside the mon-estimation
+    
     for i in range(1, n_steps):
         
         next_state_vector = trans_model.function(
@@ -66,7 +66,7 @@ def generate_perfect_trajectory_np(model_entry, first_point: np.ndarray, n_steps
     R = model_entry.value["meas_mod"].noise_covar    
 
     # Initial state
-    current_state = generate_cartesian_prior_from_mes(first_point, w0=0.01)
+    current_state = generate_cartesian_prior_from_mes(first_point)
 
     # allocate array for state vectors (n_steps × n_state_dim)
     state_dim = current_state.state_vector.shape[0]
@@ -139,9 +139,12 @@ def plot_states_xy(states_array, color="blue"):
     fig.show()
 
 
-
+#TODO: ZA GT PATH VERZIJU MONA MORAM DODAT W0 I TO STA CE SE PREUZET OD GT-PATHA TOG
 def kalman(measurements: list, model_variables, predictor, updater):
-    prior = generate_cartesian_prior_from_mes(measurements[0].state_vector) #NOTE: add vx0, vy0, w0 as parameters SET W0 AS 0 FOR CV
+    if model_variables ==  CartesianModels.COORDINATED_TURN:
+        prior = generate_cartesian_prior_from_mes(measurements[0].state_vector) #NOTE: add vx0, vy0, w0 as parameters for prior state vector SET W0 AS 0 FOR CV
+    else:
+        prior = None #in case polar
     aposteriori_track = Track()       # filtered/updated (posterior) track
     apriori_track = Track()  # predicted (prior) track
     posterior_states = []
@@ -149,13 +152,11 @@ def kalman(measurements: list, model_variables, predictor, updater):
     for measurement in measurements:
         prediction = predictor.predict(prior, timestamp=measurement.timestamp)  # PREDICTION
         apriori_track.append(prediction)  
-        #COMMENT THIS TOSEE THE TRANS FUNCTION
         hypothesis = SingleHypothesis(prediction, measurement) #measurement+noise
         post = updater.update(hypothesis)  # Update using measurement
         aposteriori_track.append(post)  
         prior = post  # swap for next step
         posterior_states.append(post.state_vector.ravel())
-        #aposteriori_track.append(prediction) #NOTE: UNCOMMENT THIS TO SEE TRANSITION FUNCTION
         
     posterior_array = np.vstack(posterior_states)
     return apriori_track, aposteriori_track, posterior_array
