@@ -29,33 +29,6 @@ class PolarCoordinatedTurn(GaussianTransitionModel):
     def covar(self, time_interval=None, **kwargs):
         # Compute covariance on the fly from Properties
         return np.diag([self.linear_noise, self.linear_noise, 0.01, 0.01, self.turn_noise])
-    #if the argument is a 1D state vector, but UKF takes in sigma ponts (5vectors)
-    # def function(self, state, noise=None, time_interval=None, **kwargs):
-    #     print(state.state_vector)
-    #     sv = np.atleast_2d(state.state_vector)
-    #     if sv.shape[0] == 1 and sv.shape[1] == 5:
-    #         sv = sv.T  # make (5,1)
-
-    #     x1, x2, v, h, omega = sv.flatten()
-    #     T = time_interval.total_seconds() if time_interval else 1.0
-
-    #     if abs(omega) < 1e-6:  # straight-line
-    #         x1_new = x1 + v*T*np.cos(h)
-    #         x2_new = x2 + v*T*np.sin(h)
-    #     else:
-    #         x1_new = x1 + (2*v/omega)*np.sin(omega*T/2)*np.cos(h+omega*T/2)
-    #         x2_new = x2 + (2*v/omega)*np.sin(omega*T/2)*np.sin(h+omega*T/2)
-
-    #     v_new = v
-    #     h_new = h + omega*T
-    #     omega_new = omega
-
-    #     new_state = np.array([[x1_new], [x2_new], [v_new], [h_new], [omega_new]])
-
-    #     if noise is not None:
-    #         new_state += noise
-    #     return new_state
-
 
     
     def function(self, state, noise=False, **kwargs) -> StateVector:
@@ -123,7 +96,30 @@ class PolarModels(Enum):
         "meas_mod": LinearGaussian(
             ndim_state=5,
             mapping=(0, 1),  # x and y positions in state vector 
-            noise_covar=np.diag([0.1, 0.1])
+            noise_covar=np.diag([10, 10])
         )
     }
 
+def generate_polar_prior_from_mes(z0: np.ndarray, v:float, h:float=0.2, ω:float=0.1):
+    """
+    Generates a GaussianState prior from a 2x1 state vector z0 of x and y positions for polar cordinate turn
+
+    Parameters:
+        z0: np.ndarray of shape (2,1) containing [x, y]
+        vx0, vy0, w0: optional initial velocities and turn rate
+    """
+    
+    #NOTE MEASUREMENT HAS TO BE 2X1 ARRAY
+    x0 = z0[0,0] # z0 is a column matrix,z0[0] is a row-> it has to do with the stone soup implementation
+    y0 = z0[1,0]
+
+    #NOTE: IF CONSTANT VELOCITY SET w0 AS 0
+    state_vec = np.array([[x0],
+                        [y0],
+                        [v],
+                        [h],
+                        [ω]])
+    # large uncertainty on velocities and turn rate
+    covar = np.diag([1.0, 1.0, 5.0, 5.0, 5.0])
+    prior = GaussianState(state_vec, covar, timestamp=datetime(2025, 9, 12, 12, 0, 0))
+    return prior      

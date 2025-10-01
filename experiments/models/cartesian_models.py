@@ -27,8 +27,8 @@ class Models(Enum):
     
     COORDINATED_TURN = { #FOR CARS IN ROTORS, CARS IN LONG TURNS ETC
         "trans_mod": ConstantTurn(
-            turn_noise_coeff=0.1,  # determines uncertainty in nonlinear turn rate -> Q process noise for turn rate ω Q 
-            linear_noise_coeffs=np.array([0.1, 0.1])   #determines uncertainty (process noise) in linear motion for velocity-> Q play with values
+            turn_noise_coeff=0.01,  # determines uncertainty in nonlinear turn rate -> Q process noise for turn rate ω Q 
+            linear_noise_coeffs=np.array([0.01, 0.01])   #determines uncertainty (process noise) in linear motion for velocity-> Q play with values
             # noise for [x, y, v, heading, ω] 
         ),
         "prior":GaussianState(
@@ -37,7 +37,7 @@ class Models(Enum):
                                     [0],   # y position
                                     [15],   # y velocity
                                     [0.1]]), # turn rate ω
-                covar=np.diag([1., 10., 1., 10., 10.]),  # Confidence in initial guess, is updated = P uncertainty
+                covar=np.diag([1., 1., 1., 1., 1.]),  # Confidence in initial guess, is updated = P uncertainty
                 timestamp=start_time),
         "meas_mod": LinearGaussian(
             ndim_state=5,             # number of states in ConstantTurn
@@ -47,8 +47,8 @@ class Models(Enum):
         )
     }
 
-
-def generate_cartesian_prior_from_mes(z0: np.ndarray,  vx0: float = -8., vy0: float = -10., w0: float = -0.1):
+#TODO: CHANGE THIS FOR THE MON-ESTIMATION EXPERIMENT
+def generate_cartesian_prior_from_mes(z0: np.ndarray,  vx0: float = -10., vy0: float = -2., w0: float = 0.2):
     """
     Generates a GaussianState prior from a 2x1 state vector z0 with a hardcoded timestamp.
 
@@ -58,7 +58,7 @@ def generate_cartesian_prior_from_mes(z0: np.ndarray,  vx0: float = -8., vy0: fl
     """
     
     #NOTE MEASUREMENT HAS TO BE 2X1 ARRAY
-    x0 = z0[0,0] # i dont know why the measurements are a 2d array for 2 values -> it has to do with the stone soup implementation
+    x0 = z0[0,0] # z0 is a column matrix,z0[0] is a row-> it has to do with the stone soup implementation
     y0 = z0[1,0]
 
     #NOTE: IF CONSTANT VELOCITY SET w0 AS 0
@@ -85,7 +85,7 @@ def generate_cartesian_prior_from_mes(z0: np.ndarray,  vx0: float = -8., vy0: fl
     #     "prior": GaussianState([0, 0, 0, 0, 0, 0], np.diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]), timestamp=start_time),
     #     "meas_mod": LinearGaussian(
     #                                     ndim_state=6,        
-    #                                     mapping=(0, 3),      #TODO: CHECK IF POSITIONS ARE RIGHT measure x (0) and y (3) -> only position  
+    #                                     mapping=(0, 3),     n  
     #                                     noise_covar=np.array([[1e6, 0], #change to 3x3 if i insert velocity
     #                                                         [0, 1e6]])
     #                                 ),
