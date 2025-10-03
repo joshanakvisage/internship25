@@ -59,8 +59,8 @@ class MonData:
 
         for i in range(1, self.path_length):
             #TODO: WHY ESTIMATED_DATASET - WTF? WHEN GT_PATH IT FAILS
-            f = self.gt_dataset[:, i, pos_indices]  # x, y depend on the transition model and prior
-            u = self.gt_dataset[:, i-1, pos_indices] # x, y depend on the transition model and prior
+            f = self.estimated_dataset[:, i, pos_indices]  # x, y depend on the transition model and prior
+            u = self.estimated_dataset[:, i-1, pos_indices] # x, y depend on the transition model and prior
             mon_result =  mon.calculate_mon(f, u)
             self.mons.append(float(mon_result))
         return self.mons
@@ -84,6 +84,38 @@ class MonData:
         # Call existing Mon method
         mon_value = mon.calculate_mon(f, u)
         return mon_value
+    
+    def calculate_MSE_layer(self, level_index, pos_indices=None):
+        """
+        Calculate MSE for a specific layer (timestep) across all paths.
+        level_index: int, timestep index
+        pos_indices: list of indices to include in MSE (default all)
+        Returns: float, mean squared error across all paths for that timestep
+        """
+        if self.model_type == "POLAR_COORDINATED_TURN":
+            pos_indices = [0, 1]  # x, y in polar
+        elif self.model_type == "COORDINATED_TURN":
+            pos_indices = [0, 2]  # x, y in Cartesian
+
+        gt = self.gt_dataset[:, level_index, :]
+        est = self.estimated_dataset[:, level_index, :]
+
+        if pos_indices is not None:
+            gt = gt[:, pos_indices]
+            est = est[:, pos_indices]
+
+        mse = np.mean((gt - est)**2)
+        return mse
+    
+    def calculate_MSE_layers(self, pos_indices=None):
+        """
+        Calculate MSE across all layers (timesteps) for the dataset.
+        Returns: np.ndarray of shape (path_length,)
+        """
+        mse_layers = np.zeros(self.path_length)
+        for i in range(self.path_length-1):
+            mse_layers[i] = self.calculate_MSE_layer(i, pos_indices)
+        return mse_layers
 
  
 class PathData:
@@ -109,7 +141,7 @@ class PathData:
         self.predictor = UnscentedKalmanPredictor(self.model_data.value["trans_mod"])
         self.updater = UnscentedKalmanUpdater(self.model_data.value["meas_mod"])
         
-        return generate_perfect_trajectory_np(self.model_data, self.starting_point, self.path_length)
+        return generate_perfect_trajectory_np(self.model_data, self.starting_point, self.path_length, generate_random_prior=False)
 
 
 
@@ -164,42 +196,49 @@ def sample_state(alpha=0.3, num_of_points=1000):
 
 #TODO: EKSTRAKTAT TOČNO INITIAL DATASET ZA PREDIKCIJEU
 #TODO: KREĆU IZ ISTE POZICIJE?
-if __name__=="__main__":
-    # timer_start = datetime.now()
-    # #initial_dataset = [np.array([[0.0], [0.0]])]
-    initial_dataset = sample_state()
-    mondata = MonData(initial_dataset, 30, model_type="COORDINATED_TURN")
-    #mondata = MonData(initial_dataset, 30, model_type="COORDINATED_TURN")
-    # #print(initial_dataset[:10])
-    # #plot_states_xy(mondata.paths[10].GT_PATH)
-    # #plot_states_xy(mondata.paths[0].GT_PATH)
-    #mons = mondata.calculate_mons()
-    #print("ALL MONS")
-    #print(mons)
-    #plot_mons(mons)
-    # #print(mon_2)
-    # timer_end = datetime.now() 
-    # elapsed = timer_end - timer_start
-    # #mon = Mon(level_3_dataset)
-    # #result = mon.calculate_mon()
-    # print(elapsed)
-    # initial_dataset = sample_state(num_of_points=100)
-    # #type = "COORDINATED_TURN"
-    # type = "POLAR_COORDINATED_TURN"
-    # mondata = MonData(initial_dataset, 30, model_type=type)
-    # num_to_plot = 1
-    # for i in range(num_to_plot):
-    #     path = mondata.paths[i]
-    #     # The function needs the transition model and states_array
-    #     plot_states_xy(path.model_data, path.GT_PATH, color=f"rgba(0,0,255,{0.2*i+0.2})")
-    # Take Cartesian CT with w0=0
-    #gt = mondata.get_2d_step_gt_dataset(2)  # shape (n_paths, 2)
-    #u = mondata.get_2d_step_gt_dataset(1)
-    
-    # mon_result = mondata.calculate_mon_for_level(15)
-    # print(mon_result)
+if __name__=="__main__": 
 
-    u_full = mondata.get_2d_step_gt_dataset(2)
-    f_full = mondata.get_2d_step_gt_dataset(12)
-    res, W, f_hat = test_affine_mapping(u_full, f_full, [0,2])
-    print("Affine residual:", res)  
+
+    #type = "COORDINATED_TURN"
+    #type = "POLAR_COORDINATED_TURN"
+
+
+    timer_start = datetime.now()
+    # #initial_dataset = [np.array([[0.0], [0.0]])]
+    initial_dataset = sample_state(1000)
+    mondata = MonData(initial_dataset, 20, model_type=type)
+    #print(initial_dataset[:10])
+    #plot_states_xy(mondata.paths[10].GT_PATH)
+    #plot_states_xy(mondata.paths[0].GT_PATH)
+    mons = mondata.calculate_mons()
+   
+    plot_mons(mons)
+    print("ALL MONS")
+    print(mons)
+    #plot_mons(mons)
+    #print(mon_2)
+    timer_end = datetime.now() 
+    elapsed = timer_end - timer_start
+    #mon = Mon(level_3_dataset)
+    #result = mon.calculate_mon()
+    print(elapsed)
+    
+    
+    num_to_plot = 1
+    for i in range(num_to_plot):
+        path = mondata.paths[30]
+        # The function needs the transition model and states_array
+        plot_states_xy(path.model_data, path.GT_PATH, color=f"rgba(0,0,255,{0.2*i+0.2})")
+        plot_states_xy(path.model_data, path.EST, color=f"rgba(0,0,255,{0.2*i+0.2})")
+
+    mses = mondata.calculate_MSE_layers()
+
+    plot_mons(mses, "RMSE over layers")
+    #print(mondata.calculate_MSE_layers())
+    #mon_result = mondata.calculate_mon_for_level(15)
+    #print(mon_result)
+
+    #u_full = mondata.get_2d_step_gt_dataset(2)
+    #f_full = mondata.get_2d_step_gt_dataset(14)
+    #res, W, f_hat = test_affine_mapping(u_full, f_full, [0,2])
+    #print("Affine residual:", res)  
